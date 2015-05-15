@@ -10,10 +10,12 @@ import(
 	"github.com/gocql/gocql"
 )
 
-var cassandraSession *gocql.Session
-
 func main() {
+	var cassandraSession *gocql.Session
 	var cassandraSessionChannel chan *gocql.Session = make(chan *gocql.Session)
+
+	port := "8080"
+	cassandraHost := "cassandra"
 
 	go func() {
 		CassandraLoop:
