@@ -20,7 +20,7 @@ func main() {
 	go func() {
 		CassandraLoop:
 			for {
-				cluster := gocql.NewCluster("cassandra")
+				cluster := gocql.NewCluster(cassandraHost)
 				session, err := cluster.CreateSession()
 
 				if err != nil {
@@ -41,8 +41,6 @@ func main() {
 	}
 
 	defer cassandraSession.Close()
-
-	port := "8080"
 
 	r := mux.NewRouter()
 
