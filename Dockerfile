@@ -7,4 +7,4 @@ ENV GOPATH /go/
 RUN go get -d -v
 EXPOSE 8080
 
-CMD bash -c 'go run *.go'
+CMD go run *.go

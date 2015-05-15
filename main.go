@@ -10,28 +10,29 @@ import(
 	"github.com/gocql/gocql"
 )
 
-func main() {
-	var cassandraSession *gocql.Session
-	var cassandraSessionChannel chan *gocql.Session = make(chan *gocql.Session)
+var cassandraSession *gocql.Session
 
+func connectCassandra(cassandraHost string, cassandraSessionChannel chan *gocql.Session) {
+	for {
+		cluster := gocql.NewCluster(cassandraHost)
+		session, err := cluster.CreateSession()
+
+		if err == nil {
+			cassandraSessionChannel <- session
+			return
+		}
+
+		log.Println("Can't connect cassandra! Try again after 1 second!")
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func main() {
 	port := "8080"
 	cassandraHost := "cassandra"
 
-	go func() {
-		CassandraLoop:
-			for {
-				cluster := gocql.NewCluster(cassandraHost)
-				session, err := cluster.CreateSession()
-
-				if err != nil {
-					log.Println("Can't connect cassandra! Try Again", err)
-					time.Sleep(500 * time.Millisecond)
-				} else {
-					cassandraSessionChannel <- session
-					break CassandraLoop
-				}
-			}
-	}()
+	var cassandraSessionChannel chan *gocql.Session = make(chan *gocql.Session)
+	go connectCassandra(cassandraHost, cassandraSessionChannel)
 
 	select {
 		case cassandraSession = <- cassandraSessionChannel:
