@@ -18,8 +18,11 @@ func main() {
 
 	// Config section
 	port := "8080"
-	cassandraUsers := make(map[string]string)
-	cassandraUsers["john@example.com"] = "password"
+	cassandraUsers := map[string]string{
+		"john@example.com": "password",
+		"tom@example.com": "password",
+		"mary@example.com": "password",
+	}
 
 	// Migrations section
 	err := migrateCassandra(cassandraHost, cassandraKeyspace, cassandraUsers)

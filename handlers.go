@@ -3,7 +3,6 @@ package main
 import(
 	"fmt"
 	"net/http"
-	"io/ioutil"
 
 	"github.com/pquerna/ffjson/ffjson"
 )
@@ -17,81 +16,99 @@ type Status struct {
 	Data    Data `json:"data"`
 }
 
-type User struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+func jsend(status bool, message string) []byte {
+	responseBuffer, _ := ffjson.Marshal(&Status{ status, Data{ message } })
+	return responseBuffer
 }
 
 func RegistrationHandler(rw http.ResponseWriter, r *http.Request) {
-
+	var err error
 	var responseBuffer []byte
 
 	rw.Header().Set("Content-Type", "application/json")
 
 	defer func() { fmt.Fprintln(rw, string(responseBuffer)) }()
 
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		responseBuffer, _ = ffjson.Marshal(&Status{ false, Data{ "Failed to read request body" } })
-		return
-	}
-
 	user := &User{}
-	err = ffjson.Unmarshal(body, user)
+
+	err = user.read(r)
 	if err != nil {
-		responseBuffer, _ = ffjson.Marshal(&Status{ false, Data{ "Failed to unmarshal JSON"  } })
+		responseBuffer = jsend(false, "Wrong request!")
 		return
 	}
 
-	err = addCassandraUser(user)
+	err = user.register()
 	if err != nil {
-		responseBuffer, _ = ffjson.Marshal(&Status{ false, Data{ "Registration failed!" + err.Error() } })
+		responseBuffer = jsend(false, "Registration failed!")
 		return
 	}
 
-	responseBuffer, _ = ffjson.Marshal(&Status{ true, Data{ "Successfully registred!" }})
+	responseBuffer = jsend(true, "Successfully registred!")
 	return
 }
 
 func SignInHandler(rw http.ResponseWriter, r *http.Request) {
-
+	var err error
 	var responseBuffer []byte
 
 	rw.Header().Set("Content-Type", "application/json")
 
 	defer func() { fmt.Fprintln(rw, string(responseBuffer)) }()
 
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		responseBuffer, _ = ffjson.Marshal(&Status{ false, Data{ "Failed to read request body" } })
-		return
-	}
-
 	user := &User{}
-	err = ffjson.Unmarshal(body, user)
+
+	err = user.read(r)
 	if err != nil {
-		responseBuffer, _ = ffjson.Marshal(&Status{ false, Data{ "Failed to unmarshal JSON"  } })
+		responseBuffer = jsend(false, "Wrong request!")
 		return
 	}
 
-	err = authCassandraUser(user)
+	err = user.auth()
 	if err != nil {
-		responseBuffer, _ = ffjson.Marshal(&Status{ false, Data{ "Sign in failed!" } })
+		responseBuffer = jsend(false, "Sign in failed!")
 		return
 	}
 
-	responseBuffer, _ = ffjson.Marshal(&Status{ true, Data{ "Successfully signed in!" }})
+	responseBuffer = jsend(true, "Successfully signed in!")
 	return
 }
 
 func LogOutHandler(rw http.ResponseWriter, r *http.Request) {
+	var err error
+	var responseBuffer []byte
+
 	rw.Header().Set("Content-Type", "application/json")
-	responseBuffer, _ := ffjson.Marshal(&Status{ true, Data{} })
-	fmt.Fprintln(rw, string(responseBuffer))
+
+	defer func() { fmt.Fprintln(rw, string(responseBuffer)) }()
+
+	user := &User{}
+
+	err = user.read(r)
+	if err != nil {
+		responseBuffer = jsend(false, "Wrong request!")
+		return
+	}
+
+	responseBuffer = jsend(true, "Successfully logged out!")
+	return
 }
 
 func CheckHandler(rw http.ResponseWriter, r *http.Request) {
+	var err error
+	var responseBuffer []byte
+
 	rw.Header().Set("Content-Type", "application/json")
-	responseBuffer, _ := ffjson.Marshal(&Status{ true, Data{} })
-	fmt.Fprintln(rw, string(responseBuffer))
+
+	defer func() { fmt.Fprintln(rw, string(responseBuffer)) }()
+
+	user := &User{}
+
+	err = user.read(r)
+	if err != nil {
+		responseBuffer = jsend(false, "Wrong request!")
+		return
+	}
+
+	responseBuffer = jsend(true, "Successfully checked!")
+	return
 }
