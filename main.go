@@ -8,46 +8,26 @@ import(
 	"github.com/gorilla/mux"
 )
 
+// Cassandra config section
+const(
+	cassandraHost string = "cassandra"
+	cassandraKeyspace string = "auth"
+)
+
 func main() {
 
 	// Config section
-
 	port := "8080"
-	cassandraHost := "cassandra"
-	cassandraKeyspace := "auth"
 	cassandraUsers := make(map[string]string)
 	cassandraUsers["john@example.com"] = "password"
 
-	// Cassandra keyspace section
-
-	cassandraSession, err := newCassandraSession(cassandraHost, "")
+	// Migrations section
+	err := migrateCassandra(cassandraHost, cassandraKeyspace, cassandraUsers)
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer cassandraSession.Close()
-
-	err = addKeyspace(cassandraKeyspace, cassandraSession)
-	if err != nil {
-		log.Fatal("Can't create keyspace:", err)
-	}
-
-	cassandraSession.Close()
-
-	// Cassandra migrations section
-
-	cassandraSession, err = newCassandraSession(cassandraHost, cassandraKeyspace)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = addUsers(cassandraUsers, cassandraSession)
-	if err != nil {
-		log.Fatal("Can't add users:", err)
+		log.Fatal("Migration failed! Reason:", err)
 	}
 
 	// HTTP Server section
-
 	r := mux.NewRouter()
 
 	users := r.PathPrefix("/users").Subrouter()
