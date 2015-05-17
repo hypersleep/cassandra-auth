@@ -21,7 +21,7 @@ func jsend(status bool, message string) []byte {
 	return responseBuffer
 }
 
-func RegistrationHandler(rw http.ResponseWriter, r *http.Request) {
+func registrationHandler(rw http.ResponseWriter, r *http.Request) {
 	var err error
 	var responseBuffer []byte
 
@@ -47,7 +47,7 @@ func RegistrationHandler(rw http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func SignInHandler(rw http.ResponseWriter, r *http.Request) {
+func signInHandler(rw http.ResponseWriter, r *http.Request) {
 	var err error
 	var responseBuffer []byte
 
@@ -69,31 +69,38 @@ func SignInHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	session, _ := store.Get(r, "session")
+
+	session.Values["email"] = user.Email
+	session.Save(r, rw)
+
+	http.Redirect(rw, r, "/users/check", 302)
+
 	responseBuffer = jsend(true, "Successfully signed in!")
 	return
 }
 
-func LogOutHandler(rw http.ResponseWriter, r *http.Request) {
-	var err error
+func logOutHandler(rw http.ResponseWriter, r *http.Request) {
 	var responseBuffer []byte
 
 	rw.Header().Set("Content-Type", "application/json")
 
 	defer func() { fmt.Fprintln(rw, string(responseBuffer)) }()
 
-	user := &User{}
-
-	err = user.read(r)
+	session, err := store.Get(r, "session")
 	if err != nil {
-		responseBuffer = jsend(false, "Wrong request!")
+		responseBuffer = jsend(false, "Session error!")
 		return
 	}
+
+	session.Values["email"] = nil
+	session.Save(r, rw)
 
 	responseBuffer = jsend(true, "Successfully logged out!")
 	return
 }
 
-func CheckHandler(rw http.ResponseWriter, r *http.Request) {
+func checkHandler(rw http.ResponseWriter, r *http.Request) {
 	var err error
 	var responseBuffer []byte
 
@@ -103,12 +110,18 @@ func CheckHandler(rw http.ResponseWriter, r *http.Request) {
 
 	user := &User{}
 
-	err = user.read(r)
+	session, err := store.Get(r, "session")
 	if err != nil {
-		responseBuffer = jsend(false, "Wrong request!")
+		responseBuffer = jsend(false, "Session error!")
 		return
 	}
 
-	responseBuffer = jsend(true, "Successfully checked!")
+	if str, ok := session.Values["email"].(string); ok {
+		user.Email = str
+		responseBuffer = jsend(true, "Successfully checked! Hello, " + user.Email + "!")
+	} else {
+		responseBuffer = jsend(true, "Error!")
+	}
+
 	return
 }

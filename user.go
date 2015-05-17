@@ -7,6 +7,8 @@ import(
 
 	"github.com/gocql/gocql"
 	"golang.org/x/crypto/bcrypt"
+	// "github.com/gorilla/securecookie"
+	"github.com/gorilla/sessions"
 	"github.com/pquerna/ffjson/ffjson"
 )
 
@@ -14,6 +16,8 @@ type User struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
+
+var store = sessions.NewCookieStore([]byte("something-very-secret"))
 
 func (user *User) read(r *http.Request) error {
 	body, err := ioutil.ReadAll(r.Body)

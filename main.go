@@ -37,16 +37,16 @@ func main() {
 
 	users.Methods("POST").
 		  Path("/create").
-		  HandlerFunc(RegistrationHandler)
+		  HandlerFunc(registrationHandler)
 	users.Methods("POST").
 		  Path("/signin").
-		  HandlerFunc(SignInHandler)
+		  HandlerFunc(signInHandler)
 	users.Methods("DELETE").
 		  Path("/logout").
-		  HandlerFunc(LogOutHandler)
+		  HandlerFunc(logOutHandler)
 	users.Methods("POST").
 		  Path("/check").
-		  HandlerFunc(CheckHandler)
+		  HandlerFunc(checkHandler)
 
 	fmt.Println("Server running on port:", port)
 	http.ListenAndServe(":" + port, r)
