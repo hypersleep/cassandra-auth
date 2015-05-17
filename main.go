@@ -3,45 +3,50 @@ package main
 import(
 	"fmt"
 	"log"
-	"time"
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/gocql/gocql"
 )
 
-var cassandraSession *gocql.Session
-
-func connectCassandra(cassandraHost string, cassandraSessionChannel chan *gocql.Session) {
-	for {
-		cluster := gocql.NewCluster(cassandraHost)
-		session, err := cluster.CreateSession()
-
-		if err == nil {
-			cassandraSessionChannel <- session
-			return
-		}
-
-		log.Println("Can't connect cassandra! Try again after 1 second!")
-		time.Sleep(1 * time.Second)
-	}
-}
-
 func main() {
+
+	// Config section
+
 	port := "8080"
 	cassandraHost := "cassandra"
+	cassandraKeyspace := "auth"
+	cassandraUsers := make(map[string]string)
+	cassandraUsers["john@example.com"] = "password"
 
-	var cassandraSessionChannel chan *gocql.Session = make(chan *gocql.Session)
-	go connectCassandra(cassandraHost, cassandraSessionChannel)
+	// Cassandra keyspace section
 
-	select {
-		case cassandraSession = <- cassandraSessionChannel:
-			log.Println("Cassandra connection established!")
-		case <- time.After(10 * time.Second):
-			log.Fatal("Can't connect to Cassadra! Quit by timeout!")
+	cassandraSession, err := newCassandraSession(cassandraHost, "")
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	defer cassandraSession.Close()
+
+	err = addKeyspace(cassandraKeyspace, cassandraSession)
+	if err != nil {
+		log.Fatal("Can't create keyspace:", err)
+	}
+
+	cassandraSession.Close()
+
+	// Cassandra migrations section
+
+	cassandraSession, err = newCassandraSession(cassandraHost, cassandraKeyspace)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = addUsers(cassandraUsers, cassandraSession)
+	if err != nil {
+		log.Fatal("Can't add users:", err)
+	}
+
+	// HTTP Server section
 
 	r := mux.NewRouter()
 
