@@ -48,10 +48,7 @@ func addKeyspace(cassandraKeyspace string, cassandraSession *gocql.Session) (err
 }
 
 func addUsers(cassandraUsers map[string]string, cassandraSession *gocql.Session) (err error) {
-	query := "CREATE TABLE users (email text, encrypted_password text, PRIMARY KEY (email))"
-	err = cassandraSession.Query(query).Exec()
-	if err != nil { return }
-
+	var query string
 	for email, password := range cassandraUsers {
 
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 10)
@@ -61,14 +58,6 @@ func addUsers(cassandraUsers map[string]string, cassandraSession *gocql.Session)
 		err = cassandraSession.Query(query, email, hashedPassword).Exec()
 		if err != nil { return err }
 	}
-
-	var email string
-	var hashedPassword string
-    if err = cassandraSession.Query(`SELECT email, encrypted_password FROM users WHERE email=? LIMIT 1`,
-        "john@example.com").Consistency(gocql.One).Scan(&email, &hashedPassword); err != nil {
-        log.Fatal("Select error:", err)
-    }
-    log.Println("User:", email, hashedPassword)
 
 	return
 }
@@ -98,10 +87,57 @@ func migrateCassandra(cassandraHost string, cassandraKeyspace string, cassandraU
 		return err
 	}
 
+	query := "CREATE TABLE users (email text, encrypted_password text, PRIMARY KEY (email))"
+	err = cassandraSession.Query(query).Exec()
+	if err != nil { return err }
+
 	err = addUsers(cassandraUsers, cassandraSession)
 	if err != nil {
 		return errors.New("Can't add users: " + err.Error())
 	}
 
 	return nil
+}
+
+func addCassandraUser(user *User) (err error) {
+	cassandraSession, err := newCassandraSession(cassandraHost, cassandraKeyspace)
+	if err != nil { return }
+
+	log.Println("Trying to register:", user.Email)
+
+	defer cassandraSession.Close()
+
+	cassandraUsers := make(map[string]string)
+	cassandraUsers[user.Email] = user.Password
+
+	err = addUsers(cassandraUsers, cassandraSession)
+	if err != nil { return }
+
+	log.Println("Succefully registred:", user.Email)
+
+	return
+}
+
+func authCassandraUser(user *User) (err error) {
+	cassandraSession, err := newCassandraSession(cassandraHost, cassandraKeyspace)
+	if err != nil { return }
+
+	log.Println("Trying to autheticate:", user.Email)
+
+	defer cassandraSession.Close()
+
+	var email string
+	var hashedPassword string
+	err = cassandraSession.Query(`SELECT email, encrypted_password FROM users WHERE email=? LIMIT 1`, user.Email).
+							  Consistency(gocql.One).
+							  Scan(&email, &hashedPassword)
+	if err != nil { return }
+
+	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(user.Password))
+	if err != nil { return }
+
+	log.Println("Succefully autheticated:", user.Email)
+
+	return
+
 }

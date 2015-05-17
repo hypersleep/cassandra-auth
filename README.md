@@ -4,8 +4,22 @@ Simple demo app for demonstrate authorization and registration using Apache Cass
 
 ## Running
 
-Install docker: https://docs.docker.com/installation/
+1. Install docker:
 
-Install docker-compose: `pip install -U docker-compose`
+    https://docs.docker.com/installation/
 
-And run: `docker-compose up`
+2. Install pip:
+
+    https://pip.pypa.io/en/latest/installing.html
+
+3. Install docker-compose:
+
+        pip install -U docker-compose
+
+4. Pull the app:
+
+        git clone https://github.com/hypersleep/cassandra-auth.git && cd cassandra-auth
+
+5. And run:
+
+        docker-compose up
